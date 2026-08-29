@@ -3,4 +3,8 @@ project(P2P)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(P2P main.cpp)
+add_executable(P2P
+        serwer.cpp
+        serwer.cpp
+        klient.cpp
+        FileTransferHeader.h)
