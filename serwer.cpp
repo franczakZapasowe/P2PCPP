@@ -1,6 +1,8 @@
 #include <cstring>
 #include <iostream>
 #include <ostream>
+#include <vector>
+
 #include "FileTransferHeader.h"
 #include "ChunkHeader.h"
 #ifdef _WIN32
@@ -65,20 +67,42 @@ int main() {
         return 1;
     }
     std::cout<<"Polaczenie udane\n";
+
     FileTransferHeader file;
     int ifRecv = recv(klientSocket,&file,sizeof(file),0);
     if (ifRecv <= 0) {
         std::cerr<<"Can t recev a File Transfer Header\n";
         return 1;
     }
-    //std::cout<<"Id: "<<file.id<<" name: "<<file.name<<" size: "<<file.size<<std::endl;
+    std::cout<<"Otzymałem FileHeader\n";
+    std::cout<<"Id: "<<file.id<<" name: "<<file.name<<" size: "<<file.size<<std::endl;
 
     FILE * plik = fopen("Nowy.wav","wb");
     if (plik==nullptr) {
-        std::cerr<<"can not opean file "<<std::endl;
+        std::cerr<<"can not create new file "<<std::endl;
         return 1;
     }
 
+    ChunkHeader chunk;
+    size_t sumaRozmiaruWszystkichChankow = 0;
+    std::vector<char> buffor(65536);
+    int ileDoBufora = 0;
+    int licznikChankow = 0;
+    while (file.size > sumaRozmiaruWszystkichChankow) {
+        licznikChankow = 0;
+        int czyRecev = recv(klientSocket,&chunk,sizeof(chunk),0); // odbieramy chunk
+        if (czyRecev <= 0) {
+            std::cerr<<"Can t recev a File Transfer Header\n";
+            return 1;
+        }
+        fseek(plik,chunk.offset,SEEK_SET); // przsuwamy glowice na offset
+        while (chunk.chunk_size > licznikChankow ) {
+            ileDoBufora = recv(klientSocket,buffor.data() + licznikChankow,chunk.chunk_size - licznikChankow,0); // odbieramy pakiet z danymi
+            licznikChankow+=ileDoBufora;
+            sumaRozmiaruWszystkichChankow += ileDoBufora;
+        }
+        fwrite(buffor.data(),1,licznikChankow,plik); // wpisujemy go do pliku
+    }
 
     fclose(plik);
     CLOSESOCKET(serwerSocket);

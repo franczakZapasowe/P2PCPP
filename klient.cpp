@@ -64,11 +64,11 @@ int main() {
     fseek(plik,0,SEEK_END); // ustawiamy glowice na koniec pliku
     fileHeader.size = ftell(plik); // ROZMIAR PLIKU W BYTE
     strncpy(fileHeader.name,"Zamienony.wav" ,25); //  - docelowa damy  zczytanie nazwy z biblioteki filesystem
-    send(clientSocket, &fileHeader, sizeof(fileHeader), 0);
+    send(clientSocket, &fileHeader, sizeof(fileHeader), 0); // w tymm momencie serwer wie jaki będzie rozmiar pliku id i nazwa
     fseek(plik,0,SEEK_SET);
 
     size_t ileByte = 0;
-    std::vector<char>bufor(65536); // bufor na nasz plik 64 KB
+    std::vector<char>bufor(65536); // bufor na nasze dane 64 KB
     ChunkHeader chunk{}; // CHUNK
     chunk.file_id = fileHeader.id;
 
@@ -78,7 +78,7 @@ int main() {
         chunk.chunk_size = ileByte;
         tempOffest = ftell(plik); // bedziemy zczytawac sobie do przodu w nastepnej iteracji dopierio bedzie wpisane to co jest tu zczytane
         send(clientSocket, &chunk, sizeof(chunk), 0); // wysylamy etykiete
-        send(clientSocket,bufor.data(),sizeof(bufor), 0); // wysylamy dane
+        send(clientSocket,bufor.data(),ileByte, 0); // wysylamy dane
     }
     fclose(plik);
 
