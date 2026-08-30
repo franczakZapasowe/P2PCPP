@@ -2,6 +2,7 @@
 #include <iostream>
 #include <ostream>
 #include "FileTransferHeader.h"
+#include "ChunkHeader.h"
 #ifdef _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -66,13 +67,20 @@ int main() {
     std::cout<<"Polaczenie udane\n";
     FileTransferHeader file;
     int ifRecv = recv(klientSocket,&file,sizeof(file),0);
-    std::cout<<"recev: "<<ifRecv<<"\n"; // raz zadzialalo teraz zwraca -1 czyli blad sieci
-    if (ifRecv > 0) {
-       const char*  text  = "Poprawnie otrzymana struktura\n";
-        send(klientSocket,text,strlen(text),0);
+    if (ifRecv <= 0) {
+        std::cerr<<"Can t recev a File Transfer Header\n";
+        return 1;
     }
-    std::cout<<"Id: "<<file.id<<" name: "<<file.name<<" size: "<<file.size<<std::endl; // nie wysietla sie name
+    //std::cout<<"Id: "<<file.id<<" name: "<<file.name<<" size: "<<file.size<<std::endl;
 
+    FILE * plik = fopen("Nowy.wav","wb");
+    if (plik==nullptr) {
+        std::cerr<<"can not opean file "<<std::endl;
+        return 1;
+    }
+
+
+    fclose(plik);
     CLOSESOCKET(serwerSocket);
 #ifdef _WIN32
     WSACleanup(); // Zwolnienie biblioteki przed zamknięciem programu

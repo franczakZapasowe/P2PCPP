@@ -1,8 +1,11 @@
 #include <cstring>
 #include <iostream>
 #include <ostream>
-
+#include <fstream>
 #include "FileTransferHeader.h"
+#include <vector>
+
+#include "ChunkHeader.h"
 #ifdef _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -25,6 +28,14 @@
 #endif
 
 int main() {
+#ifdef _WIN32
+    WSADATA wsaData;
+    // Żądamy wersji 2.2 biblioteki Winsock
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed\n";
+        return 1;
+    }
+#endif
 
     SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (!ISVALIDSOCKET(clientSocket)) {
@@ -42,15 +53,42 @@ int main() {
         return 1;
     }
     std::cout<<"Polaczenie udane\n";
-    FileTransferHeader file;
-    file.id = 0;
-    file.size = 200;
-    strncpy(file.name,"test dzialania",25);
-    send(clientSocket, &file, sizeof(file), 0);
+
+    FILE * plik = fopen("Zamieniony.wav","rb");
+    if (plik==nullptr) {
+        std::cerr<<"error zamieniony.wav"<<std::endl;
+        return 1;
+    }
+    FileTransferHeader fileHeader{};
+    fileHeader.id = 0;
+    fseek(plik,0,SEEK_END); // ustawiamy glowice na koniec pliku
+    fileHeader.size = ftell(plik); // ROZMIAR PLIKU W BYTE
+    strncpy(fileHeader.name,"Zamienony.wav" ,25); //  - docelowa damy  zczytanie nazwy z biblioteki filesystem
+    send(clientSocket, &fileHeader, sizeof(fileHeader), 0);
+    fseek(plik,0,SEEK_SET);
+
+    size_t ileByte = 0;
+    std::vector<char>bufor(65536); // bufor na nasz plik 64 KB
+    ChunkHeader chunk{}; // CHUNK
+    chunk.file_id = fileHeader.id;
+
+    int tempOffest = ftell(plik); // 0;
+    while ( (ileByte = fread(bufor.data(),1,65536,plik))> 0) {
+        chunk.offset = tempOffest;
+        chunk.chunk_size = ileByte;
+        tempOffest = ftell(plik); // bedziemy zczytawac sobie do przodu w nastepnej iteracji dopierio bedzie wpisane to co jest tu zczytane
+        send(clientSocket, &chunk, sizeof(chunk), 0); // wysylamy etykiete
+        send(clientSocket,bufor.data(),sizeof(bufor), 0); // wysylamy dane
+    }
+    fclose(plik);
+
     char buffer[1024];
     int lastChar = recv(clientSocket, buffer, 1024, 0);
     buffer[lastChar] = '\0';
     std::cout<<buffer<<std::endl;
     CLOSESOCKET(clientSocket);
+#ifdef _WIN32
+    WSACleanup(); // Zwolnienie biblioteki przed zamknięciem programu
+#endif
     return 0;
 }

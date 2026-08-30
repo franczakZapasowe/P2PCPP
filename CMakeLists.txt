@@ -7,4 +7,5 @@ add_executable(P2P
         serwer.cpp
         serwer.cpp
         klient.cpp
-        FileTransferHeader.h)
+        FileTransferHeader.h
+        ChunkHeader.h)
