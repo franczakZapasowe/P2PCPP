@@ -106,7 +106,8 @@ int main() {
         }
         fwrite(buffor.data(),1,licznikChankow,plik); // wpisujemy go do pliku
     }
-
+    const char*wszystko = "wsystko przyslo";
+    send(klientSocket,wszystko,strlen(wszystko),0);
     fclose(plik);
     CLOSESOCKET(serwerSocket);
 #ifdef _WIN32

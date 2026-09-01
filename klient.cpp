@@ -30,6 +30,8 @@
     #define GETSOCKETERRNO() (errno)
 #endif
 
+inline std::atomic<bool> isRunning{true};
+
 int main() {
 #ifdef _WIN32
     WSADATA wsaData;
@@ -78,6 +80,7 @@ int main() {
     int tempOffest = ftell(plik); // 0;
     TransferTask transfer_task; // sttuktura dla wątkow - header + dane
     SafeQueue<TransferTask> transferQueue;
+    ThreadPool threadPool(4, clientSocket, &transferQueue);
 
     while ( (ileByte = fread(bufor.data(),1,65536,plik))> 0) {
         // teraz pracuje nasz producent on nie ma dostepu do send tylko tworzy nowe struktury i dodaje je do kolejki
@@ -87,10 +90,17 @@ int main() {
         transfer_task.header = chunk;
         transfer_task.data = bufor;
         transferQueue.push(transfer_task);
-
         // send(clientSocket, &chunk, sizeof(chunk), 0); // wysylamy etykiete
         // send(clientSocket,bufor.data(),ileByte, 0); // wysylamy dane
     }
+    do {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    } while ( !transferQueue.isEmpty());
+
+    isRunning.store(false);
+
+    transferQueue.wakeup();
+
     fclose(plik);
 
     char buffer[1024];
