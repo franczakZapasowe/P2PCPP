@@ -2,6 +2,9 @@
 #include <iostream>
 #include <ostream>
 #include <vector>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include "FileTransferHeader.h"
 #include "ChunkHeader.h"

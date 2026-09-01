@@ -8,4 +8,7 @@ add_executable(P2P
         serwer.cpp
         klient.cpp
         FileTransferHeader.h
-        ChunkHeader.h)
+        ChunkHeader.h
+        TransferTask.h
+        SafeQueue.h
+        ThreadPool.h)

@@ -4,8 +4,11 @@
 #include <fstream>
 #include "FileTransferHeader.h"
 #include <vector>
-
+#include "ThreadPool.h"
+#include "FileTransferHeader.h"
 #include "ChunkHeader.h"
+#include "TransferTask.h"
+#include "SafeQueue.h"
 #ifdef _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -73,12 +76,20 @@ int main() {
     chunk.file_id = fileHeader.id;
 
     int tempOffest = ftell(plik); // 0;
+    TransferTask transfer_task; // sttuktura dla wątkow - header + dane
+    SafeQueue<TransferTask> transferQueue;
+
     while ( (ileByte = fread(bufor.data(),1,65536,plik))> 0) {
+        // teraz pracuje nasz producent on nie ma dostepu do send tylko tworzy nowe struktury i dodaje je do kolejki
         chunk.offset = tempOffest;
         chunk.chunk_size = ileByte;
         tempOffest = ftell(plik); // bedziemy zczytawac sobie do przodu w nastepnej iteracji dopierio bedzie wpisane to co jest tu zczytane
-        send(clientSocket, &chunk, sizeof(chunk), 0); // wysylamy etykiete
-        send(clientSocket,bufor.data(),ileByte, 0); // wysylamy dane
+        transfer_task.header = chunk;
+        transfer_task.data = bufor;
+        transferQueue.push(transfer_task);
+
+        // send(clientSocket, &chunk, sizeof(chunk), 0); // wysylamy etykiete
+        // send(clientSocket,bufor.data(),ileByte, 0); // wysylamy dane
     }
     fclose(plik);
 
